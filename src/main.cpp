@@ -4,13 +4,13 @@
 char auth[] = BLYNK_AUTH;
 #define BLYNK_PRINT Serial
 
-const char *ssid         = SSID_NAME;
-const char *password     = SSID_PASSWORD;
-const char* mqtt_server = MQTT_SERVER;
-const char* mqtt_topic = MQTT_TOPIC;
+const char *ssid = SSID_NAME;
+const char *password = SSID_PASSWORD;
+const char *mqtt_server = MQTT_SERVER;
+const char *mqtt_topic = MQTT_TOPIC;
 const int DHTPin = 4;
 const int relayPin = 12;
-const unsigned long maxScen = 600000; //10 minutes
+const unsigned long maxScen = 600000;  // 10 minutes
 
 #define DHTTYPE DHT22
 
@@ -20,12 +20,12 @@ const unsigned long maxScen = 600000; //10 minutes
 // #include <Blynk.h>
 #include <BlynkSimpleEsp8266.h>
 // OTA Includes
-#include <ESP8266mDNS.h>
 #include <ArduinoOTA.h>
 #include <DHTesp.h>
-#include <Wire.h>  // Only needed for Arduino 1.6.5 and earlier
-#include "SSD1306Wire.h" // legacy include: `#include "SSD1306.h"`
+#include <ESP8266mDNS.h>
 #include <PubSubClient.h>
+#include <Wire.h>         // Only needed for Arduino 1.6.5 and earlier
+#include "SSD1306Wire.h"  // legacy include: `#include "SSD1306.h"`
 
 void reconnectPlatform();
 void updateScreen();
@@ -45,9 +45,10 @@ void logMessage(String message, float toshow);
 void logMessage(String message);
 void logInDisplay(String message);
 unsigned long boilerOnTime(int actTemp, int setTemp);
-int checkOnBoiler(unsigned long starts, unsigned long expectedTimeOn, unsigned long currentMillisOn , int currentTemperature, int themorstatExpectedTemperature);
-int gotoRunlevel1 (int actualTemperature, int thermostatTemperature);
-
+int checkOnBoiler(unsigned long starts, unsigned long expectedTimeOn,
+                  unsigned long currentMillisOn, int currentTemperature,
+                  int themorstatExpectedTemperature);
+int gotoRunlevel1(int actualTemperature, int thermostatTemperature);
 
 int hittingOn = 0;
 int startHour = 0;
@@ -55,9 +56,9 @@ int endHour = 0;
 int thermostatTemperature = 0;
 float currentTemperature = 0;
 int runlevelScenario = 0;
-unsigned long startScen = 0; //scenario started
-int boilerStat = 0; //boiler status
-unsigned long scenLength = 0; //minutes on
+unsigned long startScen = 0;   // scenario started
+int boilerStat = 0;            // boiler status
+unsigned long scenLength = 0;  // minutes on
 
 WiFiUDP ntpUDP;
 DHTesp dht;
@@ -69,7 +70,7 @@ NTPClient timeClient(ntpUDP, "europe.pool.ntp.org", 0, 3600000);
 WiFiClient espClient;
 PubSubClient client(espClient);
 
-SSD1306Wire  display(0x3c, D3, D5);
+SSD1306Wire display(0x3c, D3, D5);
 
 void setup() {
   pinMode(relayPin, OUTPUT);
@@ -80,17 +81,18 @@ void setup() {
   display.setContrast(255);
   display.setFont(ArialMT_Plain_10);
   display.setTextAlignment(TEXT_ALIGN_CENTER_BOTH);
-  display.drawString(display.getWidth() / 2, display.getHeight() / 2 - 10, "Starting OS");
+  display.drawString(display.getWidth() / 2, display.getHeight() / 2 - 10,
+                     "Starting OS");
   display.display();
 
   display.setLogBuffer(5, 30);
 
-  WiFi.begin (ssid, password);
+  WiFi.begin(ssid, password);
   Serial.begin(9600);
   timeClient.begin();
   // Wait for connection
-  while ( WiFi.status() != WL_CONNECTED ) {
-    delay ( 10 );
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(10);
   }
 
   logInDisplay("Connected to WIFI");
@@ -104,12 +106,13 @@ void setup() {
     display.clear();
     display.setFont(ArialMT_Plain_10);
     display.setTextAlignment(TEXT_ALIGN_CENTER_BOTH);
-    display.drawString(display.getWidth() / 2, display.getHeight() / 2 - 10, "OTA Update");
+    display.drawString(display.getWidth() / 2, display.getHeight() / 2 - 10,
+                       "OTA Update");
     display.display();
   });
 
   ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
-    display.drawProgressBar(4, 32, 120, 8, progress / (total / 100) );
+    display.drawProgressBar(4, 32, 120, 8, progress / (total / 100));
     display.display();
   });
 
@@ -117,7 +120,8 @@ void setup() {
     display.clear();
     display.setFont(ArialMT_Plain_10);
     display.setTextAlignment(TEXT_ALIGN_CENTER_BOTH);
-    display.drawString(display.getWidth() / 2, display.getHeight() / 2, "Restarting the system");
+    display.drawString(display.getWidth() / 2, display.getHeight() / 2,
+                       "Restarting the system");
     display.display();
   });
   logInDisplay("Connecting to Blynk");
@@ -135,7 +139,7 @@ void setup() {
   // Thermostat temperatura
   Blynk.syncVirtual(V5);
 
-  dht.setup(4, DHTesp::DHT22); // Connect DHT sensor to GPIO 17
+  dht.setup(4, DHTesp::DHT22);  // Connect DHT sensor to GPIO 17
   // Setup a function to be called every 10 seconds
   sensorsTimer.setInterval(10000L, sendSensor);
   runtimeTimer.setInterval(10000L, runtimeScenarios);
@@ -146,7 +150,7 @@ void setup() {
   logInDisplay("End of Setup");
 }
 
-BLYNK_WRITE(V0) //Button Widget is writing to pin V1
+BLYNK_WRITE(V0)  // Button Widget is writing to pin V1
 {
   int pinData = param.asInt();
   if (pinData == HIGH) {
@@ -157,17 +161,14 @@ BLYNK_WRITE(V0) //Button Widget is writing to pin V1
 }
 
 void reconnectPlatform() {
-
   int wifitries = 0;
-  while ((WiFi.status() != WL_CONNECTED))
-  {
+  while ((WiFi.status() != WL_CONNECTED)) {
     logInDisplay("Reconnecting to Wifi!");
-    WiFi.begin (ssid, password);
+    WiFi.begin(ssid, password);
     wifitries++;
     delay(500);
 
-    if (wifitries == 5)
-    {
+    if (wifitries == 5) {
       logInDisplay("Failed after 5 attempts!");
       return;
     }
@@ -176,8 +177,7 @@ void reconnectPlatform() {
   if (!Blynk.connected()) {
     logInDisplay("Not connected to Blynk server");
     Blynk.connect();  // try to connect to server with default timeout
-  }
-  else {
+  } else {
     Serial.println("Connected to Blynk server");
   }
 
@@ -199,12 +199,11 @@ void reconnectPlatform() {
 }
 
 void updateScreen() {
-
   String topText = "SYS: ";
-  String hittingValue =  (hittingOn ? "ON" : "OFF");
+  String hittingValue = (hittingOn ? "ON" : "OFF");
 
   String schedulerText = "SCH: ";
-  String schedulerValue =  (isScheduleOn() ? "ON" : "OFF");
+  String schedulerValue = (isScheduleOn() ? "ON" : "OFF");
 
   display.clear();
   display.setFont(ArialMT_Plain_16);
@@ -216,33 +215,32 @@ void updateScreen() {
 
   display.setFont(ArialMT_Plain_24);
   display.setTextAlignment(TEXT_ALIGN_RIGHT);
-  char buffer [50];
-  sprintf(buffer,  "%.1f", currentTemperature);
+  char buffer[50];
+  sprintf(buffer, "%.1f", currentTemperature);
   display.drawString(128, 40, buffer);
 
   display.display();
 }
 
-BLYNK_WRITE(V3) //Button Widget is writing to pin V1
+BLYNK_WRITE(V3)  // Button Widget is writing to pin V1
 {
   startHour = param.asInt();
 }
 
-BLYNK_WRITE(V4) //Button Widget is writing to pin V1
+BLYNK_WRITE(V4)  // Button Widget is writing to pin V1
 {
   endHour = param.asInt();
 }
 
-BLYNK_WRITE(V5) //Button Widget is writing to pin V1
+BLYNK_WRITE(V5)  // Button Widget is writing to pin V1
 {
   thermostatTemperature = param.asInt();
 }
 
-
-void sendSensor()
-{
+void sendSensor() {
   float h = dht.getHumidity();
-  float t = dht.getTemperature(); // or dht.readTemperature(true) for Fahrenheit
+  float t =
+      dht.getTemperature();  // or dht.readTemperature(true) for Fahrenheit
   if (isnan(h) || isnan(t)) {
     Serial.println("Failed to read from DHT sensor!");
     Blynk.virtualWrite(V1, -1);
@@ -256,7 +254,6 @@ void sendSensor()
   // Please don't send more that 10 values per second.
   Blynk.virtualWrite(V1, h);
   Blynk.virtualWrite(V2, t);
-
 }
 
 void loop() {
@@ -275,26 +272,33 @@ void runtimeScenarios() {
   printDebugInformation();
 
   unsigned long currentMillis = millis();
-  if (runlevelScenario == 0) { //no scenario running
+  if (runlevelScenario == 0) {  // no scenario running
     Serial.println("Init Runtime 0");
-    if (areConditionsForRunlevel1Passed()) { //wait for a time delay to make sure there is correctly measured avarage temperature
-      runlevelScenario =  gotoRunlevel1(currentTemperature, thermostatTemperature);
+    if (areConditionsForRunlevel1Passed()) {  // wait for a time delay to make
+                                              // sure there is correctly measured
+                                              // avarage temperature
+      runlevelScenario =
+          gotoRunlevel1(currentTemperature, thermostatTemperature);
     }
-
-  } else if (runlevelScenario == 1) { //start scenario run level 1
+  } else if (runlevelScenario == 1) {  // start scenario run level 1
     Serial.println("Init Runtime 1");
     startScen = millis();
-    scenLength  = boilerOnTime(currentTemperature, thermostatTemperature); //check how many seconds boiler should be on in 10 minute interval
+    scenLength = boilerOnTime(
+        currentTemperature,
+        thermostatTemperature);  // check how many seconds boiler should be on
+                                 // in 10 minute interval
     runlevelScenario = 2;
-    boilerStat = 1; //turn boiler on
-
-  } else if (runlevelScenario == 2) { //runlevel 2 always runs for 10 minutes
+    boilerStat = 1;                    // turn boiler on
+  } else if (runlevelScenario == 2) {  // runlevel 2 always runs for 10 minutes
     Serial.println("Init Runtime 2");
-    if (boilerStat == 1 ) { //onley check boiler stat if boiler is on this to prevent on/off fluctuation af ter overshoot
-      boilerStat = checkOnBoiler(startScen, scenLength , millis(), currentTemperature, thermostatTemperature ); //continuesly check if boiler should be on
+    if (boilerStat == 1) {  // onley check boiler stat if boiler is on this to
+                            // prevent on/off fluctuation af ter overshoot
+      boilerStat = checkOnBoiler(
+          startScen, scenLength, millis(), currentTemperature,
+          thermostatTemperature);  // continuesly check if boiler should be on
     }
 
-    if (boilerStat == 1 ) { //turn relay to on of boiler should be on
+    if (boilerStat == 1) {  // turn relay to on of boiler should be on
       Serial.println("Boiler On");
       digitalWrite(relayPin, HIGH);
       Blynk.virtualWrite(V6, HIGH);
@@ -304,7 +308,7 @@ void runtimeScenarios() {
       Blynk.virtualWrite(V6, LOW);
     }
 
-    //after 10 minutes go back to run level 0
+    // after 10 minutes go back to run level 0
     if (currentMillis - startScen > maxScen) {
       runlevelScenario = 0;
     }
@@ -312,7 +316,9 @@ void runtimeScenarios() {
 }
 
 boolean areConditionsForRunlevel1Passed() {
-  return (hittingOn == 1) && (startHour != 0) && (endHour != 0)  && (thermostatTemperature != 0) && (currentTemperature != 0) && isScheduleOn();
+  return (hittingOn == 1) && (startHour != 0) && (endHour != 0) &&
+         (thermostatTemperature != 0) && (currentTemperature != 0) &&
+         isScheduleOn();
 }
 
 boolean isScheduleOn() {
@@ -323,12 +329,13 @@ boolean isScheduleOn() {
       return (timeClient.getHours() < endHour);
     }
   } else {
-    return (timeClient.getHours() >= startHour) && (timeClient.getHours() < endHour);
+    return (timeClient.getHours() >= startHour) &&
+           (timeClient.getHours() < endHour);
   }
 }
 
-
-//function to determine how many seconds boiler should go on within 10 minute interval
+// function to determine how many seconds boiler should go on within 10 minute
+// interval
 unsigned long boilerOnTime(int actTemp, int setTemp) {
   unsigned long scnel;
   // int iscnel = 0;
@@ -342,16 +349,15 @@ unsigned long boilerOnTime(int actTemp, int setTemp) {
   } else if (setTemp - actTemp > 1) {
     scnel = (3UL * 60UL * 1000UL);
   } else {
-    scnel =  (2UL * 60UL * 1000UL);
+    scnel = (2UL * 60UL * 1000UL);
   }
 
   logMessage("Boiler goes on for: ", String(scnel));
   return scnel;
 }
 
-
-//function to determine if boiler controll loop should go to run level 1
-int gotoRunlevel1 (int actualTemperature, int thermostatTemperature) {
+// function to determine if boiler controll loop should go to run level 1
+int gotoRunlevel1(int actualTemperature, int thermostatTemperature) {
   logMessage("gotoRunlevel1");
   if (thermostatTemperature - actualTemperature > 2) {
     return 1;
@@ -360,22 +366,27 @@ int gotoRunlevel1 (int actualTemperature, int thermostatTemperature) {
   }
 }
 
-//function to check if boiler should stay on or go off
-int checkOnBoiler(unsigned long starts, unsigned long expectedTimeOn, unsigned long currentMillisOn , int currentTemperature, int themorstatExpectedTemperature) {
-
+// function to check if boiler should stay on or go off
+int checkOnBoiler(unsigned long starts, unsigned long expectedTimeOn,
+                  unsigned long currentMillisOn, int currentTemperature,
+                  int themorstatExpectedTemperature) {
   logMessage("Time boiler on: ", String(currentMillisOn - starts));
   logMessage("Expected time boiler on: ", String(expectedTimeOn));
-  if (currentTemperature - themorstatExpectedTemperature  < 2) { //criteria 1: only stay on if act temperature is below set temperature + margin
-    if (currentMillisOn - starts < expectedTimeOn) { //criteria 2: only stay on of boiler has not been on for the number of seconds determined by fscenLength
-      return 1; //stay on
+  if (currentTemperature - themorstatExpectedTemperature <
+      2) {  // criteria 1: only stay on if act temperature is below set
+            // temperature + margin
+    if (currentMillisOn - starts <
+        expectedTimeOn) {  // criteria 2: only stay on of boiler has not been on
+                           // for the number of seconds determined by fscenLength
+      return 1;  // stay on
     } else {
       logMessage("Boiler has to go off");
-      return 0;  //go off (because boiler was on for number of minues determined by fscenLength
+      return 0;  // go off (because boiler was on for number of minues
+                 // determined by fscenLength
     }
   } else {
-    return 2; //go off (2 is used to monitor overflow)
+    return 2;  // go off (2 is used to monitor overflow)
   }
-
 }
 
 void printDebugInformation() {
@@ -392,9 +403,7 @@ void logMessage(String message, float toshow) {
   logMessage(message, String(toshow, 2));
 }
 
-void logMessage(String message) {
-  logMessage(message, "");
-}
+void logMessage(String message) { logMessage(message, ""); }
 
 void logMessage(String message, int toshow) {
   logMessage(message, String(toshow));
@@ -415,7 +424,6 @@ void logInDisplay(String message) {
 }
 
 void logMessage(String message, String toshow) {
-
   String finalMessage = timeClient.getFormattedTime() + ": " + message + toshow;
   char arrayString[message.length() + 1];
   strcpy(arrayString, finalMessage.c_str());
@@ -423,5 +431,4 @@ void logMessage(String message, String toshow) {
   if (client.connected()) {
     client.publish(mqtt_topic, arrayString);
   }
-
 }
