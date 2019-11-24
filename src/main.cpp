@@ -52,6 +52,7 @@ int checkOnBoiler(unsigned long starts, unsigned long expectedTimeOn,
                   unsigned long currentMillisOn, int currentTemperature,
                   int themorstatExpectedTemperature);
 int gotoRunlevel1(int actualTemperature, int thermostatTemperature);
+String hour2str(int hour);
 
 int hittingOn = 0;
 int startHourWeekday = 0;
@@ -212,19 +213,18 @@ void reconnectPlatform() {
 }
 
 void updateScreen() {
-  String topText = "SYS: ";
-  String hittingValue = (hittingOn ? "ON" : "OFF");
-
-  String schedulerText = "SCH: ";
-  String schedulerValue = (isScheduleOn(isWeekend()) ? "ON" : "OFF");
+  String topText = "M-F: " + hour2str(startHourWeekday) + "-" +
+                   hour2str(endHourWeekday);
+  String bottomText = "SS: " + hour2str(startHourWeekend) + "-" +
+                      hour2str(endHourWeekend);
 
   display.clear();
   display.setFont(ArialMT_Plain_16);
   display.setTextAlignment(TEXT_ALIGN_LEFT);
-  display.drawString(0, 0, topText + hittingValue);
+  display.drawString(0, 0, topText);
 
   display.setTextAlignment(TEXT_ALIGN_LEFT);
-  display.drawString(0, 17, schedulerText + schedulerValue);
+  display.drawString(0, 17, bottomText);
 
   display.setFont(ArialMT_Plain_24);
   display.setTextAlignment(TEXT_ALIGN_RIGHT);
@@ -233,6 +233,12 @@ void updateScreen() {
   display.drawString(128, 40, buffer);
 
   display.display();
+}
+
+String hour2str(int hour) {
+  char numstr[2];  // enough to hold all numbers up to 64-bits
+  sprintf(numstr, "%d", hour);
+  return numstr;
 }
 
 BLYNK_WRITE(V3) { startHourWeekday = param.asInt(); }
