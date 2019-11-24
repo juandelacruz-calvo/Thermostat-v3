@@ -34,7 +34,10 @@ void loop();
 void runtimeScenarios();
 void printDebugInformation();
 boolean areConditionsForRunlevel1Passed();
-boolean isScheduleOn();
+boolean isWeekend();
+boolean isScheduleOn(int startHour, int endHour);
+boolean isScheduleOn(boolean isWeekend);
+
 void logMessage(String message, float toshow);
 void logMessage(String message, float toshow);
 void logMessage(String message);
@@ -51,8 +54,12 @@ int checkOnBoiler(unsigned long starts, unsigned long expectedTimeOn,
 int gotoRunlevel1(int actualTemperature, int thermostatTemperature);
 
 int hittingOn = 0;
-int startHour = 0;
-int endHour = 0;
+int startHourWeekday = 0;
+int endHourWeekday = 0;
+
+int startHourWeekend = 0;
+int endHourWeekend = 0;
+
 int thermostatTemperature = 0;
 float currentTemperature = 0;
 int runlevelScenario = 0;
@@ -139,6 +146,12 @@ void setup() {
   // Thermostat temperatura
   Blynk.syncVirtual(V5);
 
+  // Start hours weekends
+  Blynk.syncVirtual(V6);
+
+  // Stop hours weekends
+  Blynk.syncVirtual(V7);
+
   dht.setup(4, DHTesp::DHT22);  // Connect DHT sensor to GPIO 17
   // Setup a function to be called every 10 seconds
   sensorsTimer.setInterval(10000L, sendSensor);
@@ -203,7 +216,7 @@ void updateScreen() {
   String hittingValue = (hittingOn ? "ON" : "OFF");
 
   String schedulerText = "SCH: ";
-  String schedulerValue = (isScheduleOn() ? "ON" : "OFF");
+  String schedulerValue = (isScheduleOn(isWeekend()) ? "ON" : "OFF");
 
   display.clear();
   display.setFont(ArialMT_Plain_16);
@@ -222,20 +235,15 @@ void updateScreen() {
   display.display();
 }
 
-BLYNK_WRITE(V3)  // Button Widget is writing to pin V1
-{
-  startHour = param.asInt();
-}
+BLYNK_WRITE(V3) { startHourWeekday = param.asInt(); }
 
-BLYNK_WRITE(V4)  // Button Widget is writing to pin V1
-{
-  endHour = param.asInt();
-}
+BLYNK_WRITE(V4) { endHourWeekday = param.asInt(); }
 
-BLYNK_WRITE(V5)  // Button Widget is writing to pin V1
-{
-  thermostatTemperature = param.asInt();
-}
+BLYNK_WRITE(V5) { thermostatTemperature = param.asInt(); }
+
+BLYNK_WRITE(V6) { startHourWeekend = param.asInt(); }
+
+BLYNK_WRITE(V7) { endHourWeekend = param.asInt(); }
 
 void sendSensor() {
   float h = dht.getHumidity();
@@ -275,8 +283,8 @@ void runtimeScenarios() {
   if (runlevelScenario == 0) {  // no scenario running
     Serial.println("Init Runtime 0");
     if (areConditionsForRunlevel1Passed()) {  // wait for a time delay to make
-                                              // sure there is correctly measured
-                                              // avarage temperature
+                                              // sure there is correctly
+                                              // measured avarage temperature
       runlevelScenario =
           gotoRunlevel1(currentTemperature, thermostatTemperature);
     }
@@ -316,12 +324,27 @@ void runtimeScenarios() {
 }
 
 boolean areConditionsForRunlevel1Passed() {
-  return (hittingOn == 1) && (startHour != 0) && (endHour != 0) &&
+  return (hittingOn == 1) && (startHourWeekday != 0) && (endHourWeekday != 0) &&
          (thermostatTemperature != 0) && (currentTemperature != 0) &&
-         isScheduleOn();
+         isScheduleOn(isWeekend());
 }
 
-boolean isScheduleOn() {
+boolean isWeekend() {
+  // 0 Sunday
+  // 1-5 Monday to Friday
+  // 6 Saturday
+  return (timeClient.getDay() == 0 || timeClient.getDay() == 6) ? true : false;
+}
+
+boolean isScheduleOn(boolean isWeekend) {
+  if (isWeekend) {
+    return isScheduleOn(startHourWeekend, endHourWeekend);
+  } else {
+    return isScheduleOn(startHourWeekday, endHourWeekday);
+  }
+}
+
+boolean isScheduleOn(int startHour, int endHour) {
   if (startHour >= endHour) {
     if (timeClient.getHours() > startHour) {
       return (timeClient.getHours() >= startHour);
@@ -377,8 +400,9 @@ int checkOnBoiler(unsigned long starts, unsigned long expectedTimeOn,
             // temperature + margin
     if (currentMillisOn - starts <
         expectedTimeOn) {  // criteria 2: only stay on of boiler has not been on
-                           // for the number of seconds determined by fscenLength
-      return 1;  // stay on
+                           // for the number of seconds determined by
+                           // fscenLength
+      return 1;            // stay on
     } else {
       logMessage("Boiler has to go off");
       return 0;  // go off (because boiler was on for number of minues
@@ -392,10 +416,13 @@ int checkOnBoiler(unsigned long starts, unsigned long expectedTimeOn,
 void printDebugInformation() {
   logMessage("Current temnperature: ", currentTemperature);
   logMessage("Thermostat temnperature:", thermostatTemperature);
-  logMessage("Start Hour:", startHour);
-  logMessage("End Hour:", endHour);
+  logMessage("Start Hour during the week:", startHourWeekday);
+  logMessage("End Hour during the week:", endHourWeekday);
+  logMessage("Start Hour during the weekend:", startHourWeekend);
+  logMessage("End Hour during the weekend:", endHourWeekend);
   logMessage("Hitting system on:", hittingOn);
-  logMessage("Is Scheduler On:", isScheduleOn());
+  logMessage("Is Scheduler On:", isScheduleOn(isWeekend()));
+  logMessage("Is Weekend On:", isWeekend());
   logMessage("RAM:", String(ESP.getFreeHeap()));
 }
 
