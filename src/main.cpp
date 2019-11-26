@@ -147,11 +147,13 @@ void setup() {
   // Thermostat temperatura
   Blynk.syncVirtual(V5);
 
+  // V6 is the boiler
+
   // Start hours weekends
-  Blynk.syncVirtual(V6);
+  Blynk.syncVirtual(V7);
 
   // Stop hours weekends
-  Blynk.syncVirtual(V7);
+  Blynk.syncVirtual(V8);
 
   dht.setup(4, DHTesp::DHT22);  // Connect DHT sensor to GPIO 17
   // Setup a function to be called every 10 seconds
@@ -213,10 +215,10 @@ void reconnectPlatform() {
 }
 
 void updateScreen() {
-  String topText = "M-F: " + hour2str(startHourWeekday) + "-" +
-                   hour2str(endHourWeekday);
-  String bottomText = "SS: " + hour2str(startHourWeekend) + "-" +
-                      hour2str(endHourWeekend);
+  String topText =
+      "M-F: " + hour2str(startHourWeekday) + "-" + hour2str(endHourWeekday);
+  String bottomText =
+      "SS: " + hour2str(startHourWeekend) + "-" + hour2str(endHourWeekend);
 
   display.clear();
   display.setFont(ArialMT_Plain_16);
@@ -247,9 +249,9 @@ BLYNK_WRITE(V4) { endHourWeekday = param.asInt(); }
 
 BLYNK_WRITE(V5) { thermostatTemperature = param.asInt(); }
 
-BLYNK_WRITE(V6) { startHourWeekend = param.asInt(); }
+BLYNK_WRITE(V7) { startHourWeekend = param.asInt(); }
 
-BLYNK_WRITE(V7) { endHourWeekend = param.asInt(); }
+BLYNK_WRITE(V8) { endHourWeekend = param.asInt(); }
 
 void sendSensor() {
   float h = dht.getHumidity();
