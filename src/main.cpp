@@ -155,7 +155,7 @@ void setup() {
   // Stop hours weekends
   Blynk.syncVirtual(V8);
 
-  dht.setup(4, DHTesp::DHT22);  // Connect DHT sensor to GPIO 17
+  dht.setup(DHTPin, DHTesp::DHT22);  // Connect DHT sensor to GPIO 17
   // Setup a function to be called every 10 seconds
   sensorsTimer.setInterval(10000L, sendSensor);
   runtimeTimer.setInterval(10000L, runtimeScenarios);
