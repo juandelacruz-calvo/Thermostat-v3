@@ -1,0 +1,5 @@
+#define SSID_NAME ""
+#define SSID_PASSWORD ""
+#define MQTT_SERVER ""
+#define BLYNK_AUTH ""
+#define MQTT_TOPIC "/esp8266/thermostat/log"
