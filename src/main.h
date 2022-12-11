@@ -1,5 +1,4 @@
-#define SSID_NAME "PotatoFlat2"
-#define SSID_PASSWORD "Juandeytori1"
 #define MQTT_SERVER "192.168.1.150"
-// #define BLYNK_AUTH "mUAixBJEOUPfxPx2LgWxs8yAjjEGmOSu"
-#define MQTT_TOPIC "/esp8266/thermostat/log"
+#define MQTT_TOPIC "/thermostat/log"
+#define MQTT_TEMPERATURE_TOPIC "/thermostat/temperature"
+#define MQTT_HUMIDITY_TOPIC "/thermostat/humidity"
