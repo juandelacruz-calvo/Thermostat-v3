@@ -109,7 +109,7 @@ void setup() {
   Serial.begin(115200);
   while (!Serial)
     ;
-  if (SLOW_BOOT) Serial.println("Starting OS");
+  
   connectWifi();
 #if defined(ESP32)
   WiFi.setSleep(false);  // For the ESP32: turn off sleeping to increase UI
@@ -139,6 +139,18 @@ void setup() {
 
   loadControlValues();
   logInDisplay("End of Setup");
+    //initialize mDNS service
+    esp_err_t err = mdns_init();
+    if (err) {
+        printf("MDNS Init failed: %d\n", err);
+        return;
+    }
+
+    //set hostname
+    mdns_hostname_set(HOSTNAME);
+    //set default instance
+    mdns_instance_name_set("Thermostat ESP32 C3");
+    Serial.println("Starting OS v2");
 }
 
 int heatingSwitchH, thermostatTemperatureH, startHourWeekdayH, endHourWeekdayH,
