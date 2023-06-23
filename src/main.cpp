@@ -109,13 +109,13 @@ void setup() {
   Serial.begin(115200);
   while (!Serial)
     ;
-  
+
   connectWifi();
 #if defined(ESP32)
   WiFi.setSleep(false);  // For the ESP32: turn off sleeping to increase UI
                          // responsivness (at the cost of power use)
 #endif
-
+  connectMqtt();
   setUpUI();
 
   pinMode(RELAY_PIN, OUTPUT);
@@ -139,18 +139,18 @@ void setup() {
 
   loadControlValues();
   logInDisplay("End of Setup");
-    //initialize mDNS service
-    esp_err_t err = mdns_init();
-    if (err) {
-        printf("MDNS Init failed: %d\n", err);
-        return;
-    }
+  // initialize mDNS service
+  esp_err_t err = mdns_init();
+  if (err) {
+    printf("MDNS Init failed: %d\n", err);
+    return;
+  }
 
-    //set hostname
-    mdns_hostname_set(HOSTNAME);
-    //set default instance
-    mdns_instance_name_set("Thermostat ESP32 C3");
-    Serial.println("Starting OS v2");
+  // set hostname
+  mdns_hostname_set(HOSTNAME);
+  // set default instance
+  mdns_instance_name_set("Thermostat ESP32 C3");
+  Serial.println("Starting OS v2");
 }
 
 int heatingSwitchH, thermostatTemperatureH, startHourWeekdayH, endHourWeekdayH,
@@ -221,6 +221,7 @@ String hour2str(int hour) {
   sprintf(numstr, "%d", hour);
   return numstr;
 }
+
 void sendSensor() {
   float h = dht.getHumidity();
   float t = dht.getTemperature();
@@ -231,8 +232,9 @@ void sendSensor() {
 
   currentTemperature = t;
   if (mqttClient.connected()) {
-    mqttClient.publish(MQTT_TEMPERATURE_TOPIC, String(t).c_str());
-    mqttClient.publish(MQTT_HUMIDITY_TOPIC, String(h).c_str());
+    char numstr[45];
+    sprintf(numstr, "{\"humidity\": %.2f, \"temperature\": %.2f}", h, t);
+    mqttClient.publish(MQTT_SENSORS_TOPIC, numstr);
   }
 }
 
